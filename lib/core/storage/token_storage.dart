@@ -10,10 +10,17 @@ class TokenStorage {
   static const _keyTenantSlug  = 'edveo_tenant_slug';
   static const _keyLastRefresh = 'edveo_last_refresh_at';
 
+  // In-memory cache — avoids a Keychain/Keystore platform-channel round-trip
+  // on every outgoing request. Invalidated on write and on clearSession().
+  static String? _cachedToken;
+  static String? _cachedSlug;
+
   static Future<void> saveSession({
     required String accessToken,
     required String tenantSlug,
   }) async {
+    _cachedToken = accessToken;
+    _cachedSlug  = tenantSlug;
     await Future.wait([
       _storage.write(key: _keyAccessToken, value: accessToken),
       _storage.write(key: _keyTenantSlug,  value: tenantSlug),
@@ -24,11 +31,20 @@ class TokenStorage {
     ]);
   }
 
-  static Future<String?> getAccessToken() =>
-      _storage.read(key: _keyAccessToken);
+  static Future<void> saveTenantSlug(String slug) async {
+    _cachedSlug = slug;
+    await _storage.write(key: _keyTenantSlug, value: slug);
+  }
 
-  static Future<String?> getTenantSlug() =>
-      _storage.read(key: _keyTenantSlug);
+  static Future<String?> getAccessToken() async {
+    _cachedToken ??= await _storage.read(key: _keyAccessToken);
+    return _cachedToken;
+  }
+
+  static Future<String?> getTenantSlug() async {
+    _cachedSlug ??= await _storage.read(key: _keyTenantSlug);
+    return _cachedSlug;
+  }
 
   static Future<int?> getLastRefreshAt() async {
     final raw = await _storage.read(key: _keyLastRefresh);
@@ -36,6 +52,7 @@ class TokenStorage {
   }
 
   static Future<void> updateToken(String accessToken) async {
+    _cachedToken = accessToken;
     await Future.wait([
       _storage.write(key: _keyAccessToken, value: accessToken),
       _storage.write(
@@ -46,6 +63,8 @@ class TokenStorage {
   }
 
   static Future<void> clearSession() async {
+    _cachedToken = null;
+    _cachedSlug  = null;
     await Future.wait([
       _storage.delete(key: _keyAccessToken),
       _storage.delete(key: _keyTenantSlug),

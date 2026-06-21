@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app_lifecycle_observer.dart';
 import 'app/router.dart';
+import 'core/api/auth_interceptor.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,11 @@ class _EdveoAppState extends ConsumerState<EdveoApp>
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+
+    // Wire the 401-after-failed-refresh redirect. Called after every build so
+    // the router reference stays current; the assignment is effectively free.
+    AuthInterceptor.setRedirectCallback(() => router.go('/'));
+
     return MaterialApp.router(
       title: 'Edveo',
       debugShowCheckedModeBanner: false,

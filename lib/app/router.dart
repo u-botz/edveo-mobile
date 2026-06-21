@@ -6,8 +6,11 @@ import '../features/onboarding/presentation/institution_search_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/role_router_screen.dart';
 import '../features/student/presentation/student_shell.dart';
+import '../features/institutional_student/presentation/institutional_student_shell.dart';
 import '../features/teacher_institutional/presentation/institutional_shell.dart';
 import '../features/teacher_standalone/presentation/standalone_shell.dart';
+import '../features/teacher_standalone/courses/presentation/course_manage_screen.dart';
+import '../features/teacher_standalone/more/blog/presentation/blog_list_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -47,12 +50,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const StudentShell(),
       ),
       GoRoute(
+        path: '/institutional-student/home',
+        builder: (context, state) => const InstitutionalStudentShell(),
+      ),
+      GoRoute(
         path: '/teacher/home',
         builder: (context, state) => const InstitutionalTeacherShell(),
       ),
       GoRoute(
         path: '/standalone/home',
         builder: (context, state) => const StandaloneTeacherShell(),
+      ),
+      GoRoute(
+        path: '/standalone/more/blog',
+        builder: (context, state) => const BlogListScreen(),
+      ),
+      GoRoute(
+        path: '/standalone/courses/:courseId/manage',
+        builder: (context, state) {
+          final courseId = int.parse(state.pathParameters['courseId']!);
+          final extra = state.extra as Map<String, dynamic>;
+          return CourseManageScreen(
+            courseId: courseId,
+            courseTitle: extra['title'] as String,
+          );
+        },
       ),
     ],
   );

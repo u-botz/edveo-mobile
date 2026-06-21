@@ -1,10 +1,20 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../storage/token_storage.dart';
 
 class AuthInterceptor extends Interceptor {
   final Dio _dio;
   bool _isRefreshing = false;
   final List<_PendingRequest> _pendingQueue = [];
+
+  // Set once from the app widget after the router is ready.
+  // Called when a token refresh fails — clears the session and sends the
+  // user back to the institution-search screen.
+  static VoidCallback? _onUnauthorized;
+
+  static void setRedirectCallback(VoidCallback callback) {
+    _onUnauthorized = callback;
+  }
 
   AuthInterceptor(this._dio);
 
@@ -49,12 +59,10 @@ class AuthInterceptor extends Interceptor {
       final newToken = await _attemptRefresh();
 
       if (newToken != null) {
-        // Retry the original failed request with new token
         _isRefreshing = false;
         _retryPending(newToken);
         handler.resolve(await _retry(err.requestOptions, newToken));
       } else {
-        // Refresh failed — clear session and propagate error
         _isRefreshing = false;
         _rejectPending(err);
         await TokenStorage.clearSession();
@@ -82,8 +90,6 @@ class AuthInterceptor extends Interceptor {
           headers: {
             'Authorization': 'Bearer $expiredToken',
             'X-Tenant-Slug': slug,
-            // Skip interceptor on this call to avoid recursion
-            'X-Skip-Interceptor': 'true',
           },
         ),
       );
@@ -131,9 +137,8 @@ class AuthInterceptor extends Interceptor {
   }
 
   // ─── Navigate to login ───────────────────────────────────────────────────
-  // Replace this with your GoRouter navigation once router is set up
   void _redirectToLogin() {
-    // TODO: AppRouter.router.go('/login');
+    _onUnauthorized?.call();
   }
 }
 
@@ -144,3 +149,4 @@ class _PendingRequest {
 
   _PendingRequest(this.options, this.handler);
 }
+

@@ -1,50 +1,135 @@
+import 'package:edveo/features/student/courses/presentation/student_courses_screen.dart';
+import 'package:edveo/features/student/exams/presentation/student_exams_screen.dart';
+import 'package:edveo/features/student/live/presentation/student_live_screen.dart';
+import 'package:edveo/features/student_home/presentation/student_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StudentShell extends ConsumerStatefulWidget {
+// Shared tab-index provider so child screens can programmatically switch tabs.
+final studentShellTabProvider = StateProvider<int>((ref) => 0);
+
+class StudentShell extends ConsumerWidget {
   const StudentShell({super.key});
 
-  @override
-  ConsumerState<StudentShell> createState() => _StudentShellState();
-}
-
-class _StudentShellState extends ConsumerState<StudentShell> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    _PlaceholderPage(label: 'Home'),
-    _PlaceholderPage(label: 'Courses'),
-    _PlaceholderPage(label: 'Timetable'),
-    _PlaceholderPage(label: 'Results'),
-    _PlaceholderPage(label: 'Profile'),
+  // Tab order: 0 Home · 1 Courses · 2 Exams · 3 Live · 4 Profile
+  static const List<Widget> _screens = [
+    StudentHomeScreen(),
+    StudentCoursesScreen(),
+    StudentExamsScreen(),
+    StudentLiveScreen(),
+    _ProfilePlaceholder(),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(studentShellTabProvider);
+
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined),     label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'Courses'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: 'Timetable'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), label: 'Results'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline),    label: 'Profile'),
+      body: IndexedStack(
+        index: currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentIndex,
+        onDestinationSelected: (i) =>
+            ref.read(studentShellTabProvider.notifier).state = i,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: const Color(0x14000000),
+        elevation: 0,
+        indicatorColor: const Color(0xFFDCFCE7), // green-100
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.home_outlined, color: Color(0xFF6B7280)),
+            selectedIcon: Icon(Icons.home_rounded, color: Color(0xFF16A34A)),
+            label: 'Home',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined, color: Color(0xFF6B7280)),
+            selectedIcon: Icon(Icons.menu_book_rounded, color: Color(0xFF16A34A)),
+            label: 'Courses',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.quiz_outlined, color: Color(0xFF6B7280)),
+            selectedIcon: Icon(Icons.quiz_rounded, color: Color(0xFF16A34A)),
+            label: 'Exams',
+          ),
+          NavigationDestination(
+            icon: _BadgeIcon(
+              child: const Icon(Icons.videocam_outlined, color: Color(0xFF6B7280)),
+            ),
+            selectedIcon: const Icon(Icons.videocam_rounded, color: Color(0xFF16A34A)),
+            label: 'Live',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline, color: Color(0xFF6B7280)),
+            selectedIcon: Icon(Icons.person_rounded, color: Color(0xFF16A34A)),
+            label: 'Profile',
+          ),
         ],
       ),
     );
   }
 }
 
-class _PlaceholderPage extends StatelessWidget {
-  final String label;
-  const _PlaceholderPage({required this.label});
+// Red dot badge for the Live tab icon.
+class _BadgeIcon extends StatelessWidget {
+  final Widget child;
+  const _BadgeIcon({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('$label — M2'));
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          top: -2,
+          right: -4,
+          child: Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Color(0xFFDC2626),
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfilePlaceholder extends StatelessWidget {
+  const _ProfilePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFFF9FAFB),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_outline_rounded, size: 48, color: Color(0xFF9CA3AF)),
+            SizedBox(height: 12),
+            Text(
+              'Profile',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF374151),
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              'Coming soon',
+              style: TextStyle(fontSize: 13, color: Color(0xFF9CA3AF)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
